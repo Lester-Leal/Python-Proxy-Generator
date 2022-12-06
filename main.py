@@ -1,6 +1,5 @@
-import urllib.request , socket
+import proxycheck
 from rich import print, pretty
-from rich.table import Table
 from rich.console import Console
 from time import sleep
 import requests
@@ -9,24 +8,6 @@ import json
 pretty.install()
 console = Console()
 
-socket.setdefaulttimeout(180)
-
-def is_bad_proxy(pip):
-    try:        
-        proxy_handler = urllib.request.ProxyHandler({'http': pip})        
-        opener = urllib.request.build_opener(proxy_handler)
-        opener.addheaders = [('User-agent', 'Mozilla/5.0')]
-        urllib.request.install_opener(opener)        
-        sock=urllib.request.urlopen('http://www.google.com')  # change the url address here
-    except urllib.error.HTTPError as e:        
-        print('Error code: ', e.code)
-        return e.code
-    except Exception as detail:
-
-        print( "ERROR:", detail)
-        return 1
-    return 0
-
 def get_ipandport(URL):
     response = requests.get(URL)
     proxies = json.loads(response.text)
@@ -34,6 +15,7 @@ def get_ipandport(URL):
     port = []
     country = []
     proxyList = []
+
     for proxy in proxies['data']:
         ip.append(proxy['ip'])
         port.append(proxy['port'])
@@ -42,19 +24,13 @@ def get_ipandport(URL):
     for i in range(len(ip)):
         print('Getting proxy: ' + ip[i] + ':' + str(port[i]))
         with open('proxies.txt', 'a') as f:
-            f.write(ip[i] + ':' + port[i] + " # " + country[i] + '\n')
+            f.write(ip[i] + ':' + port[i]+'\n')
         with console.status("\n[bold green]Getting Proxies...") as status:
             sleep(0.05)
     console.print("\n[bold green]Done! Check the file 'proxies.txt'")
-    print(' ')
-    for i in range(len(proxyList)):
-        if is_bad_proxy(proxyList[i]):
-            print("Bad Proxy", proxyList[i])
-        else:
-            print("Good Proxy", proxyList[i])
-            # save good proxy to file
-            with open('good_proxies.txt', 'a') as f:
-                f.write(proxyList[i] + " # " + country[i] + '\n')
+    console.print("\n[bold green]Validating proxies...")
+    proxycheck.checkProxies()
+    
     return ip, port
     
 def PROTOCOL_HTTP():
